@@ -1,4 +1,3 @@
-from calendar import month, week
 import os
 import math
 import json
@@ -257,11 +256,16 @@ def getBethansProjects():
 	return projects
 
 def getProjects(api, user_id):
-	list_projects = api.pages_threaded(f"/users/{user_id}/projects_users")
+	try:
+		list_projects = api.pages_threaded(f"/users/{user_id}/projects_users")
+	except:
+		st.error("An error occurred when fetching project data. Please try again in a few minutes.")
+		projects = pd.DataFrame()
+		return projects
 	if list_projects:
 		projects = pd.DataFrame(list_projects)
 		if (projects.shape[0] == 0):
-			st.warning("Given user has not worked on any project.")
+			st.warning("Given user has not worked on any project!")
 		#print(f"getProjects() returns a pd.DataFrame[{projects.shape[0]},{projects.shape[1]}]")
 		#st.dataframe(projects)
 		for i in range(projects.shape[0]):
@@ -277,7 +281,7 @@ def getCoreProjects(projects):
 	core_projects = projects[projects['cursus_ids'] == 21]
 	core_projects = core_projects.reset_index()
 	if core_projects.shape[0] == 0:
-		st.warning("Given user has not worked on any core project.")
+		st.warning("Given user has not worked on any core project!")
 	#print(f"getCoreProjects() returns a pd.DataFrame[{core_projects.shape[0]},{core_projects.shape[1]}]")
 	for i in range(core_projects.shape[0]):
 		core_projects.loc[i, 'project'] = core_projects.project[i].get('name')
@@ -594,22 +598,26 @@ if __name__ == '__main__':
 			bar.progress(20)
 			if user_id != 0:
 				projects = getProjects(api, user_id)
-				bar.progress(40)
-				core_projects = getCoreProjects(projects)
-				today = getToday()
-				bar.progress(60)
-				core_projects = squishCPP(core_projects, today)
-				bar.progress(80)
-				fig = buildGantt(32, 12, core_projects, today)
-				bar.progress(90)
-				st.header(f"{user_name}'s Core Curriculum Stats")
-				eval_points = api.pages_threaded(f"https://api.intra.42.fr/v2/users/{user_id}/correction_point_historics")
-				if eval_points:
-					code_reviews = pd.DataFrame(eval_points)
-					buildMetrics(core_projects, code_reviews, today)
-					st.pyplot(fig)
-					bar.progress(100)
-				else:
-					st.error("Encountered error when fetching evaluation data")
+				if not projects.empty:
+					bar.progress(50)
+					core_projects = getCoreProjects(projects)
+					today = getToday()
+					bar.progress(60)
+					core_projects = squishCPP(core_projects, today)
+					bar.progress(80)
+					fig = buildGantt(32, 12, core_projects, today)
+					bar.progress(90)
+					st.header(f"{user_name}'s Core Curriculum Stats")
+					try:
+						eval_points = api.pages_threaded(f"https://api.intra.42.fr/v2/users/{user_id}/correction_point_historics")
+						if eval_points:
+							code_reviews = pd.DataFrame(eval_points)
+							buildMetrics(core_projects, code_reviews, today)
+							st.pyplot(fig)
+							bar.progress(100)
+						else:
+							st.error("Evaluation data is not available!")
+					except:
+						st.error("An error occurred when fetching evaluation data. Please try again in a few minutes.")
 			else:
 				st.error("User not found")
