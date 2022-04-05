@@ -266,8 +266,8 @@ def getProjects(api, user_id):
 		projects = pd.DataFrame(list_projects)
 		if (projects.shape[0] == 0):
 			st.warning("Given user has not worked on any project!")
-		#print(f"getProjects() returns a pd.DataFrame[{projects.shape[0]},{projects.shape[1]}]")
-		#st.dataframe(projects)
+		# print(f"getProjects() returns a pd.DataFrame[{projects.shape[0]},{projects.shape[1]}]")
+		# st.dataframe(projects)
 		for i in range(projects.shape[0]):
 			try:
 				projects.loc[i, 'cursus_ids'] = projects.cursus_ids.values[i][0]
@@ -280,6 +280,7 @@ def getProjects(api, user_id):
 def getCoreProjects(projects):
 	core_projects = projects[projects['cursus_ids'] == 21]
 	core_projects = core_projects.reset_index()
+	#st.dataframe(core_projects)
 	if core_projects.shape[0] == 0:
 		st.warning("Given user has not worked on any core project!")
 	#print(f"getCoreProjects() returns a pd.DataFrame[{core_projects.shape[0]},{core_projects.shape[1]}]")
@@ -297,48 +298,59 @@ def squishCPP(core_projects, today):
 		cpp08EndDate = core_projects.loc[core_projects.project == "CPP Module 08"][["updated_at"]].values[0][0]
 		core_projects.at[core_projects.loc[core_projects.project == "CPP Module 00"].index[0], "updated_at"] = cpp08EndDate
 	except:
-		print("CPP Module 08 not found")
+		# print("[DEBUG] CPP Module 08 not found")
 		try:
 			core_projects.at[core_projects.loc[core_projects.project == "CPP Module 00"].index[0], "updated_at"] = today
 		except:
-			print("CPP Module 00 not found")
+			# print("[DEBUG] CPP Module 00 not found"
+			pass
 	try:
 		core_projects = core_projects.drop([core_projects.loc[core_projects.project == ("CPP Module 08")].index[0]])
 	except:
-		print("CPP Module 08 not found")
+		#print("[DEBUG] CPP Module 08 not found")
+		pass
 	try:
 		core_projects = core_projects.drop([core_projects.loc[core_projects.project == ("CPP Module 07")].index[0]])
 	except:
-		print("CPP Module 07 not found")
+		#print("[DEBUG] CPP Module 07 not found")
+		pass
 	try:
 		core_projects = core_projects.drop([core_projects.loc[core_projects.project == ("CPP Module 06")].index[0]])
 	except:
-		print("CPP Module 06 not found")
+		#print("[DEBUG] CPP Module 06 not found")
+		pass
 	try:
 		core_projects = core_projects.drop([core_projects.loc[core_projects.project == ("CPP Module 05")].index[0]])
 	except:
-		print("CPP Module 05 not found")
+		#print("[DEBUG] CPP Module 05 not found")
+		pass
 	try:
 		core_projects = core_projects.drop([core_projects.loc[core_projects.project == ("CPP Module 04")].index[0]])
 	except:
-		print("CPP Module 04 not found")
+		#print("[DEBUG] CPP Module 04 not found")
+		pass
 	try:
 		core_projects = core_projects.drop([core_projects.loc[core_projects.project == ("CPP Module 03")].index[0]])
 	except:
-		print("CPP Module 03 not found")
+		#print("[DEBUG] CPP Module 03 not found")
+		pass
 	try:
 		core_projects = core_projects.drop([core_projects.loc[core_projects.project == ("CPP Module 02")].index[0]])
 	except:
-		print("CPP Module 02 not found")
+		#print("[DEBUG] CPP Module 02 not found")
+		pass
 	try:
 		core_projects = core_projects.drop([core_projects.loc[core_projects.project == ("CPP Module 01")].index[0]])
 	except:
-		print("CPP Module 01 not found")
+		#print("[DEBUG] CPP Module 01 not found")
+		pass
 	try:
 		core_projects.loc[core_projects.loc[core_projects.project == "CPP Module 00"].index[0], 'project'] = "C++"
 	except:
-		print("CPP Module 00 not found")
-	core_projects = core_projects.reset_index()
+		#print("[DEBUG] CPP Module 00 not found")
+		pass
+	core_projects = core_projects.reset_index(drop = True)
+	# st.dataframe(core_projects)
 	return core_projects
 
 def colorPicker(colors, project):
@@ -412,8 +424,10 @@ def buildGantt(figureW, figureH, core_projects, today):
 	totalProjects = core_projects.shape[0]
 	basePosY = 20
 	barWidth = 16
-	if (totalProjects > 0):
-		startDate = pd.Timestamp(core_projects.updated_at[totalProjects - 1]) - pd.Timedelta(days = 30)
+	# print(f"[DEBUG] total number of projects: {totalProjects}")
+	# print(f"[DEBUG] start date: {core_projects.created_at[totalProjects - 1]}")
+	if (totalProjects > 0 ):
+		startDate = pd.Timestamp(core_projects.created_at[totalProjects - 1]) - pd.Timedelta(days = 30)
 	else:
 		startDate = pd.Timestamp(today) - pd.Timedelta(days = 180)
 	endDate = pd.Timestamp(today) + pd.Timedelta(days = 30)
@@ -434,7 +448,7 @@ def buildGantt(figureW, figureH, core_projects, today):
 			projectEnd = pd.Timestamp(today)
 		else:
 			projectEnd = pd.Timestamp(core_projects.updated_at[j])
-		#print(f"Start: {projectStart}, End: {projectEnd}")
+		# print(f"Project ID: {i}, Start: {projectStart}, End: {projectEnd}")
 		color = colorPicker(colors, core_projects.project[j]);
 		gnt.broken_barh(
 			[(projectStart, projectEnd - projectStart)],
@@ -591,10 +605,9 @@ if __name__ == '__main__':
 			login = st.text_input('Intra name', '')
 			passphrase = st.text_input('Passphrase', '')
 			submitted = st.form_submit_button("Submit")
-		if submitted and login and passphrase.lower() == "thanks for all the fish":
+		if submitted and login and passphrase.lower() == os.environ['passphrase']:
 			user_id, user_name = getUserID(api, login)
-			#LOG.debug(user_id)
-			#LOG.debug(user_name)
+			# print(f"[DEBUG] name: {user_name}, intra login: {user_name}, user_id: {user_id}")
 			bar.progress(20)
 			if user_id != 0:
 				projects = getProjects(api, user_id)
@@ -604,6 +617,9 @@ if __name__ == '__main__':
 					today = getToday()
 					bar.progress(60)
 					core_projects = squishCPP(core_projects, today)
+					if core_projects.shape[0] > 0:
+						core_projects.sort_values(by='created_at', ascending=False, inplace=True)
+						core_projects = core_projects.reset_index(drop = True)
 					bar.progress(80)
 					fig = buildGantt(32, 12, core_projects, today)
 					bar.progress(90)
@@ -612,8 +628,10 @@ if __name__ == '__main__':
 						eval_points = api.pages_threaded(f"https://api.intra.42.fr/v2/users/{user_id}/correction_point_historics")
 						if eval_points:
 							code_reviews = pd.DataFrame(eval_points)
+							# st.dataframe(code_reviews)
 							buildMetrics(core_projects, code_reviews, today)
 							st.pyplot(fig)
+							# st.dataframe(core_projects)
 							bar.progress(100)
 						else:
 							st.error("Evaluation data is not available!")
@@ -621,3 +639,5 @@ if __name__ == '__main__':
 						st.error("An error occurred when fetching evaluation data. Please try again in a few minutes.")
 			else:
 				st.error("User not found")
+		else:
+			st.info('To get started, please input an intranet name and the passphrase given to you')
