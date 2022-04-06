@@ -1,6 +1,7 @@
 import os
 import math
 import json
+from re import I
 import time
 import logging
 import requests
@@ -9,9 +10,9 @@ from queue import Queue
 from copy import deepcopy
 
 import streamlit as st
-import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
+import plotly.express as px
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
 from pygments import highlight
 from pygments.lexers.data import JsonLexer
@@ -369,6 +370,22 @@ def colorPicker(colors, project):
 	elif ("Being" in project):
 		return colors[2]
 
+def themeSpecifier(project):
+	if (project in ['Libft', 'get_next_line', 'ft_printf', 'push_swap', "ft_containers"] or "C++" in project): # algorithm
+		return 'Algorithm Implementation'
+	elif (project in ['FdF', 'fract-ol', 'so_long', 'cub3d', 'miniRT']): # graphical
+		return 'Graphical Programming'
+	elif (project in ['pipex', 'minitalk', 'minishell', 'Philosophers', 'webserv', 'ft_irc']): # unix
+		return 'Unix Development'
+	elif (project in ['Born2beroot' ,'Inception', 'NetPractice']): # sysadmin
+		return 'Sys. Admin. / Dev. Ops.'
+	elif (project in ['ft_transcendence']): # web
+		return 'Web Development'
+	elif ("Exam" in project):
+		return 'Exams'
+	elif ("Being" in project):
+		return project
+
 def sumStudyHours(core_projects):
 	sumHours = 0
 	for project in core_projects.project.to_list():
@@ -410,34 +427,73 @@ def sumStudyHours(core_projects):
 			sumHours += 180
 		elif project == 'ft_transcendence':
 			sumHours += 250
+		elif project == 'NetPractice':
+			sumHours += 50
+		elif project == 'Inception':
+			sumHours += 210
 		elif ("Being" in project):
 			sumHours += 9999
 			return sumHours
 		
 	return sumHours
 
-def buildGantt(figureW, figureH, core_projects, today):
-	plt.rcParams["font.family"] = "sans-serif"
-	plt.rcParams['font.size'] = 20
-	plt.rcParams['figure.dpi'] = 1200
-	fig, gnt = plt.subplots(figsize = (figureW, figureH))
+def getLevel(core_projects):
+	level = 0
+	projects = core_projects.project.to_list()
+
+	if 'Libft' in projects:
+		level = level + 1
+	if 'get_next_line' and 'ft_printf' and 'Born2beroot' in projects:
+		level = level + 1
+	if 'push_swap' and 'FdF' and 'so_long' and 'fract-ol' and 'pipex' and 'minitalk' in projects:
+		level = level + 1
+	if 'Philosophers' and 'minishell' in projects:
+		level = level + 1
+	if 'C++' and 'cub3d' and 'miniRT' and 'NetPractice' in projects:
+		level = level + 1
+	if 'webserv' and 'ft_irc' and 'ft_containers' and 'Inception' in projects:
+		level = level + 2
+	if 'ft_transcendence' in projects:
+		level = level + 2
+
+	return level
+
+def buildGantt(core_projects, today):
+	df = []
+	# print(core_projects.columns)
+	# st.dataframe(core_projects[['project']])
 	totalProjects = core_projects.shape[0]
-	basePosY = 20
-	barWidth = 16
-	# print(f"[DEBUG] total number of projects: {totalProjects}")
-	# print(f"[DEBUG] start date: {core_projects.created_at[totalProjects - 1]}")
-	if (totalProjects > 0 ):
+
+	if (totalProjects > 0):
 		startDate = pd.Timestamp(core_projects.created_at[totalProjects - 1]) - pd.Timedelta(days = 30)
 	else:
 		startDate = pd.Timestamp(today) - pd.Timedelta(days = 180)
-	endDate = pd.Timestamp(today) + pd.Timedelta(days = 30)
-	gnt.set_xlim(startDate, endDate)
-	gnt.grid(linestyle = 'dotted', linewidth = 1, axis = 'x')
-	gnt.set_axisbelow(True)
-	gnt.set_yticks(list(range(20 * (totalProjects), 0, -20)))
-	gnt.set_yticklabels(core_projects.project.to_list(), fontsize = 14)
-	gnt.axvline(today, color = 'black', ls = '-')
-	colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+
+	totalHours = 1950
+	studyHours = sumStudyHours(core_projects)
+	remainingHours = totalHours - studyHours
+	if (remainingHours < 0):
+		remainingHours = 0
+	elapsedTime = today - startDate
+	spentHours = elapsedTime // pd.Timedelta('1 hour')
+	# print(f'{spentHours}, {studyHours}, {remainingHours}')
+
+	x = np.array([1, studyHours])
+	y = np.array([1, spentHours])
+
+	m0, b0 = np.polyfit(x, y, 1)
+	# print(f'{m0}, {b0}')
+
+	transendenceTimeOptimistic = (m0 * totalHours + b0 - m0 * studyHours + b0)
+	transendenceOptimistic = today + pd.Timedelta(hours = transendenceTimeOptimistic)
+	# print(f'{pd.Timedelta(hours = transendenceTimeOptimistic)}')
+
+	m1, b1 = np.polyfit(np.log(x) ** 4, y, 1)
+
+	transendenceTimeRealistic =  m1 * totalHours + b1 - m1 * studyHours + b1
+	transendenceRealistic = today + + pd.Timedelta(hours = transendenceTimeOptimistic + transendenceTimeRealistic)
+	# print(f'{pd.Timedelta(hours = transendenceTimeRealistic)}')
+
 	for i in range(totalProjects):
 		j = totalProjects - i - 1
 		if len(core_projects.teams[j]) != 0:
@@ -448,37 +504,78 @@ def buildGantt(figureW, figureH, core_projects, today):
 			projectEnd = pd.Timestamp(today)
 		else:
 			projectEnd = pd.Timestamp(core_projects.updated_at[j])
-		# print(f"Project ID: {i}, Start: {projectStart}, End: {projectEnd}")
-		color = colorPicker(colors, core_projects.project[j]);
-		gnt.broken_barh(
-			[(projectStart, projectEnd - projectStart)],
-			(basePosY - barWidth // 2, barWidth),
-			facecolors = color,
-			alpha = 0.7,
-			edgecolor = ['black'],
-			linestyle = 'dashed')
-		basePosY = basePosY + 20
+		
+		projectTheme = themeSpecifier(core_projects.project[j])
+		# print(f"{core_projects.project[j]}, {projectTheme}")
+		df.append(dict(
+			Project=core_projects.project[j], Start=projectStart, Finish=projectEnd, Theme=projectTheme
+		))
+	
+	# print(df)
 
-	legend_elements = [
-	Patch(facecolor = colors[0], edgecolor = 'black', label = 'Algorithms'),
-	Patch(facecolor = colors[3], edgecolor = 'black', label = 'Graphics'),
-	Patch(facecolor = colors[4], edgecolor = 'black', label = 'Unix Dev.'),
-	Patch(facecolor = colors[1], edgecolor = 'black', label = 'Sys. Admin. / Dev. Ops.'),
-	Patch(facecolor = colors[6], edgecolor = 'black', label = 'Web Dev.'),
-	Patch(facecolor = colors[7], edgecolor = 'black', label = 'Exams')
-	]
+	fig = px.timeline(df,
+		x_start="Start",
+		x_end="Finish",
+		y="Project",
+		color="Theme",
+		category_orders=dict(Project=core_projects.project),
+		height=600,
+		width=1366,
+		range_x=[startDate, transendenceRealistic  + pd.Timedelta(days = 24)]
+	)
 
-	gnt.legend(handles = legend_elements, title = "Project Theme", loc='upper center', bbox_to_anchor=(0.5, -0.05),
-	fancybox=True, shadow=True, ncol=6)
+	fig.update_layout(
+	    font_size=12,
+	    legend=dict(
+	        title="Project Theme", orientation = "h", y = -0.4, yanchor = "bottom", x = 0.5, xanchor = "center"
+	    )
+	)
 
-	gnt.annotate('Today', (today + pd.Timedelta(days = 2), (figureH // 4) * 3),
-			fontsize = 16,
-			horizontalalignment = 'left', verticalalignment = 'bottom')
+	fig.update_xaxes(rangeslider_visible = True)
+
+	fig.add_shape(
+		type="line",
+		line_color="black",
+		line_width=3,
+		opacity=1,
+		line_dash="dot",
+		x0=today, y0=21,
+		x1=today, y1=0)
+
+	fig.add_annotation(
+    	text="Today", x=today - pd.Timedelta(days=7), y=0, arrowhead=1, showarrow=True
+	)
+
+	fig.add_shape(
+	type="line",
+	line_color="skyblue",
+	line_width=3,
+	opacity=1,
+	line_dash="solid",
+	x0=transendenceOptimistic, y0=21,
+	x1=transendenceOptimistic, y1=0)
+
+	fig.add_annotation(
+    	text="Transendence<br>(Optimistic)", x=transendenceOptimistic - pd.Timedelta(days=3), y=21, arrowhead=1, showarrow=True
+	)
+
+	fig.add_shape(
+	type="line",
+	line_color="royalblue",
+	line_width=3,
+	opacity=1,
+	line_dash="solid",
+	x0=transendenceRealistic, y0=21,
+	x1=transendenceRealistic, y1=0)
+
+	fig.add_annotation(
+    	text="Transendence<br>(Realistic)", x=transendenceRealistic - pd.Timedelta(days=3), y=21, arrowhead=1, showarrow=True
+	)
 
 	return fig
 
 def buildMetrics(core_projects, code_reviews, today):
-	totalHours = 1700
+	totalHours = 1950
 	sumHours = sumStudyHours(core_projects)
 	startDate = pd.Timestamp(core_projects.created_at[core_projects.shape[0] - 1])
 	remainingHours = totalHours - sumHours
@@ -621,7 +718,7 @@ if __name__ == '__main__':
 						core_projects.sort_values(by='created_at', ascending=False, inplace=True)
 						core_projects = core_projects.reset_index(drop = True)
 					bar.progress(80)
-					fig = buildGantt(32, 12, core_projects, today)
+					fig = buildGantt(core_projects, today)
 					bar.progress(90)
 					st.header(f"{user_name}'s Core Curriculum Stats")
 					try:
@@ -630,7 +727,7 @@ if __name__ == '__main__':
 							code_reviews = pd.DataFrame(eval_points)
 							# st.dataframe(code_reviews)
 							buildMetrics(core_projects, code_reviews, today)
-							st.pyplot(fig)
+							st.plotly_chart(fig)
 							# st.dataframe(core_projects)
 							bar.progress(100)
 						else:
