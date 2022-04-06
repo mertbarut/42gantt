@@ -2,4 +2,4 @@ requests==2.25.1
 tqdm==4.56.0
 Pygments==2.9.0
 pandas==1.2.5
-plotly.express==3.0.7
+plotly.express==0.4.1
