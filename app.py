@@ -519,7 +519,8 @@ def buildGantt(core_projects, today):
 		y="Project",
 		color="Theme",
 		category_orders=dict(Project=core_projects.project),
-		range_x=[startDate, transendenceRealistic  + pd.Timedelta(days = 24)]
+		range_x=[startDate, transendenceRealistic  + pd.Timedelta(days = 24)],
+		height=600
 	)
 
 	fig.update_layout(
