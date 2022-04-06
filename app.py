@@ -519,15 +519,13 @@ def buildGantt(core_projects, today):
 		y="Project",
 		color="Theme",
 		category_orders=dict(Project=core_projects.project),
-		height=600,
-		width=1366,
 		range_x=[startDate, transendenceRealistic  + pd.Timedelta(days = 24)]
 	)
 
 	fig.update_layout(
 	    font_size=12,
 	    legend=dict(
-	        title="Project Theme", orientation = "h", y = -0.4, yanchor = "bottom", x = 0.5, xanchor = "center"
+	        title="Project Theme", orientation = "h", y = -0.5, yanchor = "bottom", x = 0.5, xanchor = "center"
 	    )
 	)
 
@@ -595,8 +593,8 @@ def buildMetrics(core_projects, code_reviews, today):
 		paceRating = 'Thoroughbred!'
 		paceEmoji = '🐎'
 	elif (paceScore > 0.10 and paceScore <= 0.15):
-		paceRating = 'Dodo!'
-		paceEmoji = '🦤'
+		paceRating = 'Reindeer!'
+		paceEmoji = '🦌'
 	elif (paceScore > 0.05 and paceScore <= 0.10):
 		paceRating = 'Racoon!'
 		paceEmoji = '🦝'
@@ -702,6 +700,7 @@ if __name__ == '__main__':
 			login = st.text_input('Intra name', '')
 			passphrase = st.text_input('Passphrase', '')
 			submitted = st.form_submit_button("Submit")
+			st.write("Reach out to me on [Discord](https://discord.com/users/218329613032620032) for your questions and feedback 😊")
 		if submitted and login and passphrase.lower() == os.environ['passphrase']:
 			user_id, user_name = getUserID(api, login)
 			# print(f"[DEBUG] name: {user_name}, intra login: {user_name}, user_id: {user_id}")
@@ -727,7 +726,7 @@ if __name__ == '__main__':
 							code_reviews = pd.DataFrame(eval_points)
 							# st.dataframe(code_reviews)
 							buildMetrics(core_projects, code_reviews, today)
-							st.plotly_chart(fig)
+							st.plotly_chart(fig, use_container_width=True)
 							# st.dataframe(core_projects)
 							bar.progress(100)
 						else:
