@@ -568,7 +568,7 @@ def buildGantt(core_projects, today):
   x1=transendenceOptimistic, y1=0)
 
   fig.add_annotation(
-      text="Transendence<br>(Optimistic)", x=transendenceOptimistic - pd.Timedelta(days=3), y=21, arrowhead=1, showarrow=True
+      text="Transcendence<br>(Optimistic)", x=transendenceOptimistic - pd.Timedelta(days=3), y=21, arrowhead=1, showarrow=True
   )
 
   fig.add_shape(
@@ -581,7 +581,7 @@ def buildGantt(core_projects, today):
   x1=transendenceRealistic, y1=0)
 
   fig.add_annotation(
-      text="Transendence<br>(Realistic)", x=transendenceRealistic - pd.Timedelta(days=3), y=21, arrowhead=1, showarrow=True
+      text="Transcendence<br>(Realistic)", x=transendenceRealistic - pd.Timedelta(days=3), y=21, arrowhead=1, showarrow=True
   )
 
   return fig, core_projects
